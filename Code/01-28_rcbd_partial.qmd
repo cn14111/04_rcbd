@@ -29,7 +29,7 @@ You should NOT analyze a given designed study with a different design than what 
 This is not an option!  
 
 ```{r data import}
-rcbd_df <- read_csv("../data/wheat_nk_balkh.csv")
+rcbd_df <- read_csv("../data/wheat_nk_balkh.csv", show_col_types = FALSE)
 
 rcbd_df
 ```
@@ -96,8 +96,9 @@ ggplot(rcbd_dfw, aes(x = krate_kgha,
   theme(legend.position = "none")
 ```
 
-# Interpreation: 
+# Interpretation: 
 Potassium effect on yield
+
 
 ```{r nk boxplot}
 ggplot(rcbd_dfw, aes(x = nrate_kgha, 
@@ -115,15 +116,19 @@ facet_grid is the powerful function give the columns facet by.
 #Interpretation: 
 
 different pattern of nitrogen indicating k rate
-decrease yield 
+At 60kg/ha of potassium, nitrogen effect at 0kg/ha shows high yield , at 200kg/ha shows low yields
 highest potassium rate reducing yield on nitrogen 
 compare different nitrogen with potassium: look at 0 nitrogen 
 
+yield response to nitrogen depending on the potassium rate
+
 # e) Statistical model  
 ## Set-to-zero vs. sum-to-zero  
-In R, the default contrast type is set-to-zero.  
 
-In research, we normally are interested in sum-to-zero contrasts.  
+setting restrictions in matrix: set-to-zero, sum-to-zero
+In R, the default contrast type is set-to-zero. (one of the coefficients from the model and set that coefficient to zero) 
+
+In research, we normally are interested in sum-to-zero contrasts.(adding up all the parameters in the model and total sum to zero)  
 
 Below we change the default to sum-to-zero ("contr.sum") before fitting the model.
 
@@ -133,11 +138,14 @@ Below we change the default to sum-to-zero ("contr.sum") before fitting the mode
 options(contrasts = c("contr.sum", "contr.poly"))
 
 # Model fitting
-rcbd_mod <- 
+rcbd_mod <- lm(yield_kgha ~ rep + nrate_kgha*krate_kgha,
+            data = rcbd_dfw
+            )
 
 # Summary
 summary(rcbd_mod)
 ```
+
 
 ## Model specification tips  
 Instead of specifying 
@@ -153,8 +161,10 @@ The more interacting effects a model has, the more efficient using the * becomes
 The `Anova()` function allows us to use **type 3 sum of squares**.  
 
 The common functions `aov()` and `anova()` use type 1 SS, which is the wrong choice IF have unbalanced data.
+unbalanced data is missing data
 
 If data is balanced, type 1 and 3 give same results.  
+balanced data is no missing data
 
 For sake of peace of mind, it is simpler to just always use type 3.  
 
@@ -162,6 +172,8 @@ For sake of peace of mind, it is simpler to just always use type 3.
 Anova(rcbd_mod, type=3)
 ```
 Notice how rep (i.e., block in this case) has a significant effect.  
+
+decrease the noise to get significant effect.
 
 This means that we **did well by blocking**, as it was able to absorb some of the overall variability and remove it from the error. Remember how **decreasing error SS** was one way to improve the model statistical power.  
 
@@ -171,7 +183,7 @@ Before we do that, let's check our model assumptions. Remember, a model is only 
 
 # g) Linear model assumptions  
 ## Extracting residuals
-First, let's extract our model residuals, and also create studentized residuals.  
+First, let's extract our model residuals, and also create studentized residuals (one way to normalize the residuals) 
 
 ```{r rcbd_resid}
 rcbd_resid <- augment(rcbd_mod) %>%
@@ -182,10 +194,17 @@ rcbd_resid
 
 Now, let's recap the linear model assumptions:  
 
+Assumptions are based on the residuals not the raw data.
+Raw data doesn't change but model changes then residuals changes
+
 - Residual independence (no pattern)  
 - Residual variance homogeneity (homoscedasticity)  
 - Residual normality (discuss this!)  
-- Outlier detection (< -3 or > 3)  
+- Outlier detection (< -3 or > 3) 
+
+variance of the error is explained by  ~eiidN(0, sigma2) [approximately independently, identically normally distributed]
+
+there are Statistical tests to tests this assumptions
 
 ## Residual independence  
 - For this, we use the **fitted vs. residual plot**.  
