@@ -317,13 +317,35 @@ Remember that it is at this level that we establish the hierarchy of how our pai
 
 Let's extract it by comparing everything to everything else.
 ```{r interaction means all}
-rcbd_means_all 
+rcbd_means_all <- emmeans(rcbd_mod, 
+                   ~nrate_kgha:krate_kgha
+                         )
 
 rcbd_means_all
 ```
 
+vertical bar ( | ) 
+
+```{r interaction n inside k}
+
+rcbd_means_nk <- emmeans(rcbd_mod, ~nrate_kgha | krate_kgha)
+
+rcbd_means_nk
+
+```
+
+```{r interaction k inside n}
+rcbd_means_kn <- emmeans(rcbd_mod, ~krate_kgha | nrate_kgha)
+
+rcbd_means_kn
+```
+
 # i) Pairwise comparisons  
 Now that we extracted means, let's perform pairwise comparisons among them.  
+
+the more comparisons we make the more false positives we get.
+
+
 
 ```{r interaction pwc all}
 rcbd_cld_all <- cld(rcbd_means_all, 
@@ -333,8 +355,31 @@ rcbd_cld_all <- cld(rcbd_means_all,
 
 rcbd_cld_all
 ```
+```{r interaction pwc n inside k}
+rcbd_cld_nk <- cld(rcbd_means_nk,
+                  reversed = T,
+                   Letters = letters,
+                   adjust = "none",
+                   alpha = .05)
+
+rcbd_cld_nk
+```
+
+```{r interaction pwc k inside n}
+rcbd_cld_kn <- cld(rcbd_means_kn,
+                  reversed = T,
+                   Letters = letters,
+                   adjust = "none"
+                   )
+
+rcbd_cld_kn
+
+```
+
 
 Let's do some light wrangling here to be able to plot these.  
+
+trimws --> trim wide space
 
 ```{r selected pwc}
 rcbd_cld_selected <- rcbd_cld_all %>% as.data.frame() %>% 
@@ -347,19 +392,71 @@ rcbd_cld_selected
 Let's plot our results, including both **raw data** (for allowing our audience to inspect data distribution) and **statistical model summary (i.e., letter separation)** for inference purposes.    
 Let's make this plot publication ready.  
 
+geom_label adds background color (that is the difference between geom_text)
+
+scale_fill_viridis_d() --> d means discrete variable (factor variable)
+
+scale_fill_viridis_c() --> c means continuous variable
+scale_fill_viridis_b() --> b means binned
+
+scale_color_manual( values = c("red", "blue")) --> it is used to color the set of values
+
 ```{r rcbd final plot}
 
 ggplot() + geom_boxplot(data = rcbd_dfw,
-                        aes(x = trtname, y= yield_kgha)) +
+                        aes(x = trtname, y= yield_kgha,
+                            fill = trtname,
+                            )) +
+  geom_jitter(data = rcbd_dfw,
+              aes(x = trtname, y = yield_kgha,
+                  color = trtname),
+              alpha = .6) +
   geom_label(data = rcbd_cld_selected,
-             aes(x = trtname,
-                 y = emmean,
-                 label = letter
-                 ))
-  
+            aes(x = trtname,
+                y = emmean,
+                label = letter),
+                size = 3,
+            label.padding = unit(.1, "lines")) +
+  labs(x = " N rate + K rate (kg/ha)",
+       y = "Yield (kg/ha) ") +
+  scale_fill_viridis_d() +
+  scale_colour_viridis_d() +
+  theme(legend.position = "none")
+
+ggsave("../output/rcbd_means.png",
+       height = 4, 
+       width =6)
+
 
 ```
 
+```{r k rates inside N}
+ggplot() + geom_boxplot(data = rcbd_dfw,
+                        aes(x = krate_kgha, y= yield_kgha,
+                            fill = trtname,
+                            )) +
+  geom_jitter(data = rcbd_dfw,
+              aes(x = krate_kgha, y = yield_kgha,
+                  color = trtname),
+              alpha = .6) +
+  geom_label(data = rcbd_cld_selected,
+            aes(x = krate_kgha,
+                y = emmean,
+                label = letter),
+                size = 3,
+            label.padding = unit(.1, "lines")) +
+  labs(x = " N rate + K rate (kg/ha)",
+       y = "Yield (kg/ha) ") +
+  scale_fill_viridis_d() +
+  scale_colour_viridis_d() +
+  facet_grid(.~nrate_kgha) +
+  theme(legend.position = "none")
+
+ggsave("../output/rcbd_means_k_rate.png",
+       height = 4, 
+       width =6)
+
+```
 
 
 
